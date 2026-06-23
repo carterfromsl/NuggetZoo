@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nugget Zoo</title>
+  
+  <style>
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #9bca46;
+      background-image: url('https://cybersandbox.ca/wp-content/uploads/2026/06/grass.jpg');
+      background-repeat: repeat;
+      background-position: center;
+    }
+    
+    #zoo {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    
+    .nugget {
+      position: absolute;
+      user-select: none;
+      transform-origin: center center;
+      z-index: 2;
+    }
+    
+    .nugget img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    .nugget-name {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      top: 15%;
+      z-index: 1;
+      white-space: nowrap;
+      font-family: sans-serif;
+      font-size: 13px;
+      font-weight: bold;
+      color: #222;
+      text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff,
+        -1px 1px 0 #fff;
+      transition: all 0.3s ease;
+      opacity: 0;
+    }
+    
+    .nugget:hover .nugget-name {
+      opacity: 1;
+      top: 5%;
+    }
+    
+    .nugget::before {
+      content: "";
+      position: absolute;
+      bottom: 15%;
+      width: 70%;
+      height: 20%;
+      left: 15%;
+      background: black;
+      border-radius: 100%;
+      opacity: 0.1;
+      filter: blur(5px);
+    }
+    </style>
+  </head>
+  <body>
+  
+  <div id="zoo"></div>
+  
+  <script>
+    const nuggets =
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-aj.webp,AJ Ermine;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-test.webp,TestSubject#1003;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-auburn.webp,Auburn;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-hammy.webp,Hammy;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-twig.webp,Twig;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-jester.webp,Jester;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-reese.webp,Reese;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-toxem.webp,Toxem;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-grom.webp,Grom;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-luckyy.webp,Luckyy;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-castle.webp,Castle;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-munchkin.webp,Munchkin;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-pineapple.webp,Electric Pineapple;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-flaming.webp,Flaming Antler;" +
+      "https://cybersandbox.ca/wp-content/uploads/2026/06/nugget-sully.webp,Sully";
+  
+  const zoo = document.getElementById("zoo");
+  
+  const nuggetPool = nuggets.split(";").map((item) => {
+    const [image, name] = item.split(",");
+    return { image, name };
+  });
+  
+  const activeNuggets = [];
+  
+  function random(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+  
+  function randomInt(min, max) {
+    return Math.floor(random(min, max + 1));
+  }
+  
+  function pickRandomNugget() {
+    return nuggetPool[randomInt(0, nuggetPool.length - 1)];
+  }
+  
+  function spawnNugget(x = null, y = null) {
+    const data = pickRandomNugget();
+  
+    const size = Math.max(
+      50,
+      Math.min(250, window.innerWidth * random(0.05, 0.2))
+    );
+  
+    const nugget = document.createElement("div");
+    nugget.className = "nugget";
+  
+    nugget.innerHTML = `
+          <div class="nugget-name">${data.name}</div>
+          <img class="nugget-image" src="${data.image}" alt="${data.name}">
+      `;
+  
+    nugget.style.width = size + "px";
+    nugget.style.height = size + "px";
+  
+    zoo.appendChild(nugget);
+  
+    let vx = random(-2.5, 2.5);
+    let vy = random(-2.5, 2.5);
+  
+    if (Math.abs(vx) < 0.5) {
+      vx = vx < 0 ? -0.5 : 0.5;
+    }
+  
+    const nuggetData = {
+      el: nugget,
+      img: nugget.querySelector(".nugget-image"),
+  
+      size,
+  
+      x: x ?? random(0, zoo.clientWidth - size),
+      y: y ?? random(0, zoo.clientHeight - size),
+  
+      vx,
+      vy,
+  
+      pauseTimer: 0,
+  
+      rotation: random(-5, 5),
+      targetRotation: random(-5, 5),
+  
+      hopPhase: random(0, Math.PI * 2)
+    };
+  
+    activeNuggets.push(nuggetData);
+  }
+  
+  function updateNugget(n, delta) {
+    if (n.pauseTimer > 0) {
+      n.pauseTimer -= delta;
+  
+      if (n.pauseTimer <= 0) {
+        n.vx = random(-2.5, 2.5);
+        n.vy = random(-2.5, 2.5);
+  
+        if (Math.abs(n.vx) < 0.5) {
+          n.vx = n.vx < 0 ? -0.5 : 0.5;
+        }
+      }
+    } else {
+      n.x += n.vx * delta * 0.06;
+      n.y += n.vy * delta * 0.06;
+  
+      if (Math.random() < 0.0007 * delta) {
+        n.pauseTimer = random(500, 2000);
+      }
+    }
+  
+    const maxX = zoo.clientWidth - n.size;
+    const maxY = zoo.clientHeight - n.size;
+  
+    if (n.x <= 0) {
+      n.x = 0;
+      n.vx *= -1;
+    }
+  
+    if (n.x >= maxX) {
+      n.x = maxX;
+      n.vx *= -1;
+    }
+  
+    if (n.y <= 0) {
+      n.y = 0;
+      n.vy *= -1;
+    }
+  
+    if (n.y >= maxY) {
+      n.y = maxY;
+      n.vy *= -1;
+    }
+  
+    if (Math.random() < 0.002 * delta) {
+      n.targetRotation = random(-5, 5);
+    }
+  
+    n.rotation += (n.targetRotation - n.rotation) * 0.05;
+  
+    n.hopPhase += delta * 0.01;
+  
+    const hopOffset = Math.abs(Math.sin(n.hopPhase)) * 8;
+  
+    const facing = n.vx >= 0 ? -1 : 1;
+  
+    n.el.style.left = n.x + "px";
+    n.el.style.top = n.y - hopOffset + "px";
+  
+    n.img.style.transform = `scaleX(${facing}) rotate(${n.rotation}deg)`;
+  }
+  
+  let lastTime = performance.now();
+  
+  function animate(time) {
+    const delta = time - lastTime;
+    lastTime = time;
+  
+    activeNuggets.forEach((n) => {
+      updateNugget(n, delta);
+    });
+  
+    requestAnimationFrame(animate);
+  }
+  
+  zoo.addEventListener("click", (e) => {
+    const rect = zoo.getBoundingClientRect();
+  
+    spawnNugget(e.clientX - rect.left, e.clientY - rect.top);
+  });
+  
+  zoo.addEventListener("touchstart", (e) => {
+    const touch = e.touches[0];
+    const rect = zoo.getBoundingClientRect();
+  
+    spawnNugget(touch.clientX - rect.left, touch.clientY - rect.top);
+  });
+  
+  const initialCount = randomInt(1, 4);
+  
+  for (let i = 0; i < initialCount; i++) {
+    spawnNugget();
+  }
+  
+  requestAnimationFrame(animate);
+  </script>
+  </body>
+</html>
